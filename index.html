@@ -212,16 +212,6 @@
                 height: 300px;
             }
         }
-
-        .pulse {
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
     </style>
 </head>
 <body>
@@ -242,5 +232,504 @@
                     <div class="info-value">765g</div>
                 </div>
                 <div class="info-item">
-                    <div id="sensor-label">Sensors Active</div>
-                    <div class="info-value">
+                    <div id="sensor-label">Active Sensors</div>
+                    <div class="info-value">3</div>
+                </div>
+                <div class="info-item">
+                    <div id="duration-label">Monitoring Duration</div>
+                    <div class="info-value" id="duration-value">--</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3 id="current-quality-title">Current Quality Status</h3>
+                <div id="quality-status" class="quality-badge fresh">Fresh</div>
+                <p id="quality-score">Quality Score: <span id="quality-value">--</span></p>
+            </div>
+            
+            <div class="stat-card">
+                <h3 id="ethanol-title">Ethanol (MQ-3)</h3>
+                <p id="ethanol-voltage">Voltage: <span id="ethanol-v-value">--</span>V</p>
+                <p id="ethanol-ppm">PPM: <span id="ethanol-ppm-value">--</span></p>
+            </div>
+            
+            <div class="stat-card">
+                <h3 id="methane-title">Methane (MQ-4)</h3>
+                <p id="methane-voltage">Voltage: <span id="methane-v-value">--</span>V</p>
+                <p id="methane-ppm">PPM: <span id="methane-ppm-value">--</span></p>
+            </div>
+            
+            <div class="stat-card">
+                <h3 id="ammonia-title">Ammonia (MQ-135)</h3>
+                <p id="ammonia-voltage">Voltage: <span id="ammonia-v-value">--</span>V</p>
+                <p id="ammonia-ppm">PPM: <span id="ammonia-ppm-value">--</span></p>
+            </div>
+        </div>
+
+        <div id="loading" class="loading">Loading data...</div>
+        <div id="error" class="error" style="display: none;"></div>
+
+        <div class="charts-container" id="charts-container" style="display: none;">
+            <div class="chart-card">
+                <div class="chart-title" id="voltage-chart-title">Sensor Voltage Readings Over Time</div>
+                <div class="chart-container">
+                    <canvas id="voltageChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-title" id="ppm-chart-title">Gas Concentration (PPM) Over Time</div>
+                <div class="chart-container">
+                    <canvas id="ppmChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-title" id="individual-quality-chart-title">Individual Quality Indices Over Time</div>
+                <div class="chart-container">
+                    <canvas id="individualQualityChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-title" id="overall-quality-chart-title">Overall Quality Index Over Time</div>
+                <div class="chart-container">
+                    <canvas id="overallQualityChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentLanguage = 'en';
+        let dashboardData = [];
+        let charts = {};
+
+        const translations = {
+            en: {
+                'main-title': 'IoT-Based Fruit Quality Monitoring System',
+                'subtitle': 'Real-time monitoring of banana quality using electronic nose technology',
+                'refresh-text': 'Refresh Data',
+                'weight-label': 'Sample Weight',
+                'sensor-label': 'Active Sensors',
+                'duration-label': 'Monitoring Duration',
+                'current-quality-title': 'Current Quality Status',
+                'quality-score': 'Quality Score: ',
+                'ethanol-title': 'Ethanol (MQ-3)',
+                'methane-title': 'Methane (MQ-4)',
+                'ammonia-title': 'Ammonia (MQ-135)',
+                'ethanol-voltage': 'Voltage: ',
+                'methane-voltage': 'Voltage: ',
+                'ammonia-voltage': 'Voltage: ',
+                'ethanol-ppm': 'PPM: ',
+                'methane-ppm': 'PPM: ',
+                'ammonia-ppm': 'PPM: ',
+                'voltage-chart-title': 'Sensor Voltage Readings Over Time',
+                'ppm-chart-title': 'Gas Concentration (PPM) Over Time',
+                'individual-quality-chart-title': 'Individual Quality Indices Over Time',
+                'overall-quality-chart-title': 'Overall Quality Index Over Time',
+                'Fresh': 'Fresh',
+                'Good': 'Good',
+                'Moderate': 'Moderate',
+                'Bad': 'Bad',
+                'Rotten': 'Rotten',
+                'days': 'days'
+            },
+            bn: {
+                'main-title': 'IoT ভিত্তিক ফলের গুণমান পর্যবেক্ষণ সিস্টেম',
+                'subtitle': 'ইলেকট্রনিক নোজ প্রযুক্তি ব্যবহার করে কলার গুণমান সরাসরি পর্যবেক্ষণ',
+                'refresh-text': 'ডেটা রিফ্রেশ করুন',
+                'weight-label': 'নমুনার ওজন',
+                'sensor-label': 'সক্রিয় সেন্সর',
+                'duration-label': 'পর্যবেক্ষণের সময়কাল',
+                'current-quality-title': 'বর্তমান গুণমানের অবস্থা',
+                'quality-score': 'গুণমান স্কোর: ',
+                'ethanol-title': 'ইথানল (MQ-3)',
+                'methane-title': 'মিথেন (MQ-4)',
+                'ammonia-title': 'অ্যামোনিয়া (MQ-135)',
+                'ethanol-voltage': 'ভোল্টেজ: ',
+                'methane-voltage': 'ভোল্টেজ: ',
+                'ammonia-voltage': 'ভোল্টেজ: ',
+                'ethanol-ppm': 'PPM: ',
+                'methane-ppm': 'PPM: ',
+                'ammonia-ppm': 'PPM: ',
+                'voltage-chart-title': 'সময়ের সাথে সেন্সর ভোল্টেজ রিডিং',
+                'ppm-chart-title': 'সময়ের সাথে গ্যাস ঘনত্ব (PPM)',
+                'individual-quality-chart-title': 'সময়ের সাথে ব্যক্তিগত গুণমান সূচক',
+                'overall-quality-chart-title': 'সময়ের সাথে সামগ্রিক গুণমান সূচক',
+                'Fresh': 'তাজা',
+                'Good': 'ভাল',
+                'Moderate': 'মাঝামাঝি',
+                'Bad': 'খারাপ',
+                'Rotten': 'পচা',
+                'days': 'দিন'
+            }
+        };
+
+        // Google Sheets CSV URL
+        const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1DVTHE2GKLFxKvv5559xCbTTEDdNjdDzj8KbVzXxPHJo/export?format=csv';
+
+        function setLanguage(lang) {
+            currentLanguage = lang;
+            updateUILanguage();
+            updateChartLanguages();
+        }
+
+        function updateUILanguage() {
+            const texts = translations[currentLanguage];
+            Object.keys(texts).forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    if (id.includes('voltage') || id.includes('ppm') || id.includes('quality-score')) {
+                        // For elements with dynamic content, only update the static part
+                        if (id === 'quality-score') {
+                            const currentScore = document.getElementById('quality-value').textContent;
+                            element.innerHTML = texts[id] + `<span id="quality-value">${currentScore}</span>`;
+                        } else {
+                            // Keep the current values for voltage and ppm displays
+                            const valueSpan = element.querySelector('span');
+                            const currentValue = valueSpan ? valueSpan.textContent : '--';
+                            element.innerHTML = texts[id] + `<span>${currentValue}</span>`;
+                        }
+                    } else {
+                        element.textContent = texts[id];
+                    }
+                }
+            });
+
+            // Update quality status badge
+            const qualityStatus = document.getElementById('quality-status');
+            if (qualityStatus && qualityStatus.textContent) {
+                const currentQuality = qualityStatus.textContent;
+                const englishQualities = ['Fresh', 'Good', 'Moderate', 'Bad', 'Rotten'];
+                const match = englishQualities.find(q => currentQuality.includes(q) || qualityStatus.classList.contains(q.toLowerCase()));
+                if (match) {
+                    qualityStatus.textContent = translations[currentLanguage][match];
+                }
+            }
+        }
+
+        function updateChartLanguages() {
+            // Update chart titles and labels
+            Object.keys(charts).forEach(chartKey => {
+                if (charts[chartKey]) {
+                    charts[chartKey].update();
+                }
+            });
+        }
+
+        function showError(message) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('error').style.display = 'block';
+            document.getElementById('error').textContent = message;
+        }
+
+        function hideError() {
+            document.getElementById('error').style.display = 'none';
+        }
+
+        function updateCurrentStats(data) {
+            if (data.length === 0) return;
+
+            const latest = data[data.length - 1];
+            
+            // Update quality status
+            const qualityScore = parseFloat(latest['Overall Quality Index']);
+            document.getElementById('quality-value').textContent = qualityScore.toFixed(3);
+            
+            const qualityStatus = document.getElementById('quality-status');
+            const qualityCategory = latest['Quality_Category'] || 'Fresh';
+            qualityStatus.textContent = translations[currentLanguage][qualityCategory] || qualityCategory;
+            qualityStatus.className = `quality-badge ${qualityCategory.toLowerCase()}`;
+
+            // Update sensor values
+            document.getElementById('ethanol-v-value').textContent = parseFloat(latest['MQ-3 voltage (Ethanol)']).toFixed(2);
+            document.getElementById('ethanol-ppm-value').textContent = parseFloat(latest['MQ-3 PPM (Ethanol)']).toFixed(1);
+            
+            document.getElementById('methane-v-value').textContent = parseFloat(latest['MQ-4(1) voltage (Methane)']).toFixed(2);
+            document.getElementById('methane-ppm-value').textContent = parseFloat(latest['MQ-4(1) PPM (Methane)']).toFixed(1);
+            
+            document.getElementById('ammonia-v-value').textContent = parseFloat(latest['MQ-135 voltage (Ammonia)']).toFixed(2);
+            document.getElementById('ammonia-ppm-value').textContent = parseFloat(latest['MQ-135 PPM (Ammonia)']).toFixed(1);
+
+            // Update duration
+            const maxDays = Math.max(...data.map(row => parseFloat(row['Time_Days'])));
+            document.getElementById('duration-value').textContent = `${maxDays.toFixed(1)} ${translations[currentLanguage]['days']}`;
+        }
+
+        function createVoltageChart(data) {
+            const ctx = document.getElementById('voltageChart').getContext('2d');
+            
+            charts.voltage = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.map(row => parseFloat(row['Time_Days']).toFixed(1)),
+                    datasets: [
+                        {
+                            label: 'MQ-3 (Ethanol)',
+                            data: data.map(row => parseFloat(row['MQ-3 voltage (Ethanol)'])),
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            tension: 0.4
+                        },
+                        {
+                            label: 'MQ-4 (Methane)',
+                            data: data.map(row => parseFloat(row['MQ-4(1) voltage (Methane)'])),
+                            borderColor: '#f59e0b',
+                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                            tension: 0.4
+                        },
+                        {
+                            label: 'MQ-135 (Ammonia)',
+                            data: data.map(row => parseFloat(row['MQ-135 voltage (Ammonia)'])),
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: currentLanguage === 'en' ? 'Time (Days)' : 'সময় (দিন)'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: currentLanguage === 'en' ? 'Voltage (V)' : 'ভোল্টেজ (V)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createPPMChart(data) {
+            const ctx = document.getElementById('ppmChart').getContext('2d');
+            
+            charts.ppm = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.map(row => parseFloat(row['Time_Days']).toFixed(1)),
+                    datasets: [
+                        {
+                            label: 'Ethanol PPM',
+                            data: data.map(row => parseFloat(row['MQ-3 PPM (Ethanol)'])),
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Methane PPM',
+                            data: data.map(row => parseFloat(row['MQ-4(1) PPM (Methane)'])),
+                            borderColor: '#f59e0b',
+                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Ammonia PPM',
+                            data: data.map(row => parseFloat(row['MQ-135 PPM (Ammonia)'])),
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: currentLanguage === 'en' ? 'Time (Days)' : 'সময় (দিন)'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'PPM'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function createIndividualQualityChart(data) {
+            const ctx = document.getElementById('individualQualityChart').getContext('2d');
+            
+            charts.individualQuality = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.map(row => parseFloat(row['Time_Days']).toFixed(1)),
+                    datasets: [
+                        {
+                            label: 'Ethanol Quality',
+                            data: data.map(row => parseFloat(row['MQ-3 Quality Index (Ethanol)'])),
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Methane Quality',
+                            data: data.map(row => parseFloat(row['MQ-4(1) Quality Index (Methane)'])),
+                            borderColor: '#f59e0b',
+                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Ammonia Quality',
+                            data: data.map(row => parseFloat(row['MQ-135 Quality Index (Ammonia)'])),
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Temperature Quality',
+                            data: data.map(row => parseFloat(row['Temperature Quality Index'])),
+                            borderColor: '#8b5cf6',
+                            backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Humidity Quality',
+                            data: data.map(row => parseFloat(row['Humidity Quality Index'])),
+                            borderColor: '#06b6d4',
+                            backgroundColor: 'rgba(6, 182, 212, 0.1)',
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: currentLanguage === 'en' ? 'Time (Days)' : 'সময় (দিন)'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: currentLanguage === 'en' ? 'Quality Index' : 'গুণমান সূচক'
+                            },
+                            min: 0,
+                            max: 1
+                        }
+                    }
+                }
+            });
+        }
+
+        function createOverallQualityChart(data) {
+            const ctx = document.getElementById('overallQualityChart').getContext('2d');
+            
+            charts.overallQuality = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.map(row => parseFloat(row['Time_Days']).toFixed(1)),
+                    datasets: [
+                        {
+                            label: currentLanguage === 'en' ? 'Overall Quality Index' : 'সামগ্রিক গুণমান সূচক',
+                            data: data.map(row => parseFloat(row['Overall Quality Index'])),
+                            borderColor: '#dc2626',
+                            backgroundColor: 'rgba(220, 38, 38, 0.1)',
+                            tension: 0.4,
+                            borderWidth: 3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: currentLanguage === 'en' ? 'Time (Days)' : 'সময় (দিন)'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: currentLanguage === 'en' ? 'Quality Index' : 'গুণমান সূচক'
+                            },
+                            min: 0,
+                            max: 1
+                        }
+                    }
+                }
+            });
+        }
+
+        function createCharts(data) {
+            // Destroy existing charts
+            Object.values(charts).forEach(chart => {
+                if (chart) chart.destroy();
+            });
+
+            createVoltageChart(data);
+            createPPMChart(data);
+            createIndividualQualityChart(data);
+            createOverallQualityChart(data);
+        }
+
+        function loadData() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('charts-container').style.display = 'none';
+            hideError();
+
+            fetch(SHEET_URL)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch data from Google Sheets');
+                    }
+                    return response.text();
+                })
+                .then(csvText => {
+                    Papa.parse(csvText, {
+                        header: true,
+                        complete: function(results) {
+                            if (results.data && results.data.length > 0) {
+                                dashboardData = results.data.filter(row => row.Timestamp && row.Timestamp.trim() !== '');
+                                
+                                document.getElementById('loading').style.display = 'none';
+                                document.getElementById('charts-container').style.display = 'block';
+                                
+                                updateCurrentStats(dashboardData);
+                                createCharts(dashboardData);
+                            } else {
+                                showError('No data found in the Google Sheet');
+                            }
+                        },
+                        error: function(error) {
+                            showError('Error parsing CSV data: ' + error.message);
+                        }
+                    });
+                })
+                .catch(error => {
+                    showError('Error loading data: ' + error.message);
+                });
+        }
+
+        function refreshData() {
+            loadData();
+        }
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            loadData();
+        });
+    </script>
+</body>
+</html>
