@@ -244,7 +244,7 @@
 
         <div class="stats-grid">
             <div class="stat-card">
-                <h3 id="current-quality-title">Current Quality Status</h3>
+                <h3 id="current-quality-title">Quality Status</h3>
                 <div id="quality-status" class="quality-badge fresh">Fresh</div>
                 <p id="quality-score">Quality Score: <span id="quality-value">--</span></p>
             </div>
@@ -448,8 +448,8 @@
             document.getElementById('ethanol-v-value').textContent = parseFloat(latest['MQ-3 voltage (Ethanol)']).toFixed(2);
             document.getElementById('ethanol-ppm-value').textContent = parseFloat(latest['MQ-3 PPM (Ethanol)']).toFixed(1);
             
-            document.getElementById('methane-v-value').textContent = parseFloat(latest['MQ-4(1) voltage (Methane)']).toFixed(2);
-            document.getElementById('methane-ppm-value').textContent = parseFloat(latest['MQ-4(1) PPM (Methane)']).toFixed(1);
+            document.getElementById('methane-v-value').textContent = parseFloat(latest['MQ-4 voltage (Methane)']).toFixed(2);
+            document.getElementById('methane-ppm-value').textContent = parseFloat(latest['MQ-4 PPM (Methane)']).toFixed(1);
             
             document.getElementById('ammonia-v-value').textContent = parseFloat(latest['MQ-135 voltage (Ammonia)']).toFixed(2);
             document.getElementById('ammonia-ppm-value').textContent = parseFloat(latest['MQ-135 PPM (Ammonia)']).toFixed(1);
@@ -476,7 +476,7 @@
                         },
                         {
                             label: 'MQ-4 (Methane)',
-                            data: data.map(row => parseFloat(row['MQ-4(1) voltage (Methane)'])),
+                            data: data.map(row => parseFloat(row['MQ-4 voltage (Methane)'])),
                             borderColor: '#f59e0b',
                             backgroundColor: 'rgba(245, 158, 11, 0.1)',
                             tension: 0.4
@@ -528,7 +528,7 @@
                         },
                         {
                             label: 'Methane PPM',
-                            data: data.map(row => parseFloat(row['MQ-4(1) PPM (Methane)'])),
+                            data: data.map(row => parseFloat(row['MQ-4 PPM (Methane)'])),
                             borderColor: '#f59e0b',
                             backgroundColor: 'rgba(245, 158, 11, 0.1)',
                             tension: 0.4
@@ -580,7 +580,7 @@
                         },
                         {
                             label: 'Methane Quality',
-                            data: data.map(row => parseFloat(row['MQ-4(1) Quality Index (Methane)'])),
+                            data: data.map(row => parseFloat(row['MQ-4 Quality Index (Methane)'])),
                             borderColor: '#f59e0b',
                             backgroundColor: 'rgba(245, 158, 11, 0.1)',
                             tension: 0.4
